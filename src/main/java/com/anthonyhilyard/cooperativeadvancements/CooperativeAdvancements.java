@@ -3,8 +3,7 @@ package com.anthonyhilyard.cooperativeadvancements;
 import java.util.Collection;
 import java.util.List;
 
-import com.anthonyhilyard.iceberg.events.CriterionEvent;
-
+import com.anthonyhilyard.cooperativeadvancements.events.CriterionEvent;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.server.level.ServerPlayer;

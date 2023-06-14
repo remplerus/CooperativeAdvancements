@@ -1,22 +1,22 @@
-buildscript {
-	repositories {
-		maven { url = 'https://maven.minecraftforge.net' }
-		mavenCentral()
-	}
-	dependencies {
-		classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.1.+', changing: true
-	}
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+	id 'org.parchmentmc.librarian.forgegradle' version '1.+'
 }
 
-apply plugin: 'net.minecraftforge.gradle'
-apply plugin: 'eclipse'
+version = project.mod_version
+group = project.group
 
-archivesBaseName = project.name + '-' + project.mcVersion + '-forge'
+base {
+    archivesName = project.name + '-' + project.mcVersion + '-forge'
+}
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 minecraft {
-	mappings channel: 'official', version: project.mcVersion
+	mappings channel: 'parchment', version: '1.19.3-2023.03.12-'+project.mcVersion
 	runs {
 		client {
 			properties 'forge.logging.markers': ''
@@ -54,8 +54,10 @@ repositories {
 
 dependencies {
 	minecraft "net.minecraftforge:forge:${project.mcVersion}-${project.forgeVersion}"
-	implementation fg.deobf('curse.maven:iceberg-520110:3832980')
+	//implementation fg.deobf('curse.maven:iceberg-520110:3832980')
 }
+
+jar.finalizedBy('reobfJar')
 
 jar {
 	manifest {
