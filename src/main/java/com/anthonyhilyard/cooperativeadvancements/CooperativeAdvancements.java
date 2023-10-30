@@ -1,32 +1,29 @@
 package com.anthonyhilyard.cooperativeadvancements;
 
-import java.util.Collection;
-import java.util.List;
-
-import com.anthonyhilyard.cooperativeadvancements.events.CriterionEvent;
-import net.minecraft.advancements.Advancement;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.server.MinecraftServer;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.eventbus.api.Event.Result;
-import net.minecraftforge.fml.IExtensionPoint;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.event.server.ServerAboutToStartEvent;
-import net.minecraftforge.fml.config.ModConfig;
-
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.bus.api.Event;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModLoadingContext;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.player.AdvancementEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import java.util.Collection;
+import java.util.List;
 
 
 @Mod("cooperativeadvancements")
 public class CooperativeAdvancements
 {
-	@SuppressWarnings("unused")
-	private static final Logger LOGGER = LogManager.getLogger();
+	public static final Logger LOGGER = LogManager.getLogger();
 	private static MinecraftServer SERVER;
 
 	private static boolean skipCriterionEvent = false;
@@ -34,15 +31,15 @@ public class CooperativeAdvancements
 	public CooperativeAdvancements()
 	{
 		// Register ourselves for server and other game events we are interested in.
-		MinecraftForge.EVENT_BUS.register(this);
+		NeoForge.EVENT_BUS.register(this);
 		ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, CooperativeAdvancementsConfig.SPEC);
-		ModLoadingContext.get().registerExtensionPoint(IExtensionPoint.DisplayTest.class, () -> new IExtensionPoint.DisplayTest(() -> "ANY", (remote, isServer) -> true));
 	}
 
 	@SubscribeEvent
 	public void onServerAboutToStart(ServerAboutToStartEvent event)
 	{
 		SERVER = event.getServer();
+		LOGGER.info("Am I here?");
 	}
 
 	/**
@@ -52,12 +49,12 @@ public class CooperativeAdvancements
 	 */
 	public static void syncCriteria(ServerPlayer first, ServerPlayer second)
 	{
-		Collection<Advancement> allAdvancements = SERVER.getAdvancements().getAllAdvancements();
+		Collection<AdvancementHolder> allAdvancements = SERVER.getAdvancements().getAllAdvancements();
 
 		// Loop through every possible advancement.
-		for (Advancement advancement : allAdvancements)
+		for (AdvancementHolder advancement : allAdvancements)
 		{
-			for (String criterion : advancement.getCriteria().keySet())
+			for (String criterion : advancement.value().criteria().keySet())
 			{
 				// We know these iterables are actually lists, so just cast them.
 				List<String> firstCompleted = (List<String>) first.getAdvancements().getOrStartProgress(advancement).getCompletedCriteria();
@@ -83,12 +80,8 @@ public class CooperativeAdvancements
 	@Mod.EventBusSubscriber(bus=Mod.EventBusSubscriber.Bus.FORGE)
 	public static class AdvancementEvents
 	{
-		/**
-		 * Tries to grant a criterion for an advancement to all players whenever a player gains a new one.
-		 */
 		@SubscribeEvent
-		public static void onCriterion(final CriterionEvent event)
-		{
+		public static void onAdvancementEarn(AdvancementEvent.AdvancementEarnEvent event) {
 			if (skipCriterionEvent)
 			{
 				return;
@@ -96,13 +89,11 @@ public class CooperativeAdvancements
 
 			if (!CooperativeAdvancementsConfig.INSTANCE.enabled.get())
 			{
-				event.setResult(Result.DENY);
+				event.setResult(Event.Result.DENY);
 			}
 			else
 			{
 				List<ServerPlayer> currentPlayers = SERVER.getPlayerList().getPlayers();
-				Advancement advancement = event.getAdvancement();
-				String criterion = event.getCriterionKey();
 				Player player = event.getEntity();
 
 				for (ServerPlayer serverPlayer : currentPlayers)
@@ -111,17 +102,17 @@ public class CooperativeAdvancements
 					{
 						// Only synchronize between team members if the config option is enabled.
 						if (CooperativeAdvancementsConfig.INSTANCE.perTeam.get() &&
-							player.getTeam() != null && serverPlayer.getTeam() != null &&
-							player.getTeam().getName().equals(serverPlayer.getTeam().getName()))
+								player.getTeam() != null && serverPlayer.getTeam() != null &&
+								player.getTeam().getName().equals(serverPlayer.getTeam().getName()))
 						{
 							continue;
 						}
 						skipCriterionEvent = true;
-						serverPlayer.getAdvancements().award(advancement, criterion);
+						syncCriteria((ServerPlayer) player, serverPlayer);
 						skipCriterionEvent = false;
 					}
 				}
-				event.setResult(Result.ALLOW);
+				event.setResult(Event.Result.ALLOW);
 			}
 		}
 
@@ -130,11 +121,11 @@ public class CooperativeAdvancements
 		 * @param event The PlayerLoggedInEvent.
 		 */
 		@SubscribeEvent
-		public static void onPlayerLogIn(final PlayerLoggedInEvent event)
+		public static void onPlayerLogIn(final PlayerEvent.PlayerLoggedInEvent event)
 		{
 			if (!CooperativeAdvancementsConfig.INSTANCE.enabled.get())
 			{
-				event.setResult(Result.DENY);
+				event.setResult(Event.Result.DENY);
 			}
 			else
 			{
@@ -157,7 +148,7 @@ public class CooperativeAdvancements
 						syncCriteria(player, serverPlayer);
 					}
 				}
-				event.setResult(Result.ALLOW);
+				event.setResult(Event.Result.ALLOW);
 			}
 		}
 	}

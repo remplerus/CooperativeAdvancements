@@ -1,28 +1,27 @@
 package com.anthonyhilyard.cooperativeadvancements;
 
+import net.neoforged.neoforge.common.ModConfigSpec;
 import org.apache.commons.lang3.tuple.Pair;
 
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.common.ForgeConfigSpec.BooleanValue;
 
 import com.electronwill.nightconfig.core.Config;
 
 public class CooperativeAdvancementsConfig
 {
-	public static final ForgeConfigSpec SPEC;
+	public static final ModConfigSpec SPEC;
 	public static final CooperativeAdvancementsConfig INSTANCE;
 	static
 	{
 		Config.setInsertionOrderPreserved(true);
-		Pair<CooperativeAdvancementsConfig, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(CooperativeAdvancementsConfig::new);
+		Pair<CooperativeAdvancementsConfig, ModConfigSpec> specPair = new ModConfigSpec.Builder().configure(CooperativeAdvancementsConfig::new);
 		SPEC = specPair.getRight();
 		INSTANCE = specPair.getLeft();
 	}
 
-	public final BooleanValue enabled;
-	public final BooleanValue perTeam;
+	public final ModConfigSpec.BooleanValue enabled;
+	public final ModConfigSpec.BooleanValue perTeam;
 
-	public CooperativeAdvancementsConfig(ForgeConfigSpec.Builder build)
+	public CooperativeAdvancementsConfig(ModConfigSpec.Builder build)
 	{
 		build.comment("Common Configuration").push("options");
 
